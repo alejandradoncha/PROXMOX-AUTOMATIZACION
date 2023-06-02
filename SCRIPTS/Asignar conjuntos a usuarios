@@ -1,1 +1,37 @@
+#!/bin/bash
+
+#Sinataxis
+      if [ $# -ne 3 ]; then
+            echo "Error, usa la siguiente sintáxis: $0 nodo nombreDeAlumno listaDeMáquinas.txt"
+            exit
+      fi
+
+#Crear la cuenta de usuario
+#El nombre de la cuenta es el segundo argumento del script
+      echo "$2@pve"
+      pveum useradd "$2@pve"
+      pvesh set /access/password \
+            --userid "$2@pve" \
+            --password "contraseña.secreta"
+
+#Crear conjunto
+#El nombre del conjunto será el del usuario
+      pvesh create pools -poolid "$2"
+
+#Dar permiso al usuario sobre el conjunto
+      pvesh set /access/acl \
+            -path /pool/"$2" \
+            -roles PVEVMAdmin \
+            -users "$2@pve"
+
+#Clonar máquinas y asociarlas al nuevo conjunto
+#El archivo con el nombre de las máquinas es el tercer argumento del script
+      while IFS=, read -r plantilla maquina; do
+            echo "Creando $2-$maquina desde $plantilla"
+            pvesh create /nodes/$1/qemu/$plantilla/clone \
+                  --pool="$2" \
+                  --newid $(pvesh get /cluster/nextid) \
+                  --name "$2-$maquina" \
+                  --full
+      done <"datos/$3"
 
