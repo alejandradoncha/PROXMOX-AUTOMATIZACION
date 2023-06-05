@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Sintaxis
+if [ $# -ne 2 ]; then
+  echo "Sintáxis: $0 nodo archivo.txt"
+  echo "'archivo.txt' es un archivo de texto con el formato 'GRUPO:usuarios:ID:NOMBRE_MAQUINAS'"
+  echo "Donde 'GRUPO' es el nombre del grupo a crear, 'usuaqios' son los nombres de usuario que pertenecen al grupo, 'ID' es el ID del grupo y 'nombre_maquinas' son los no>  exit
+fi
+
+# Leer el archivo línea por línea
+while IFS=':' read -r grupo usuarios id_grupo maquinas; do
+
+  # Eliminar máquinas del conjunto y borrar el conjunto de cada usuario
+  IFS=',' read -ra arr_usuarios <<< "$usuarios"
+  for usuario in "${arr_usuarios[@]}"; do
+    # Eliminar máquinas del conjunto
+    echo "Eliminando máquinas del conjunto $usuario"
+    pvesh get /pools/"$usuario" --output-format yaml | grep vmid | cut -d ':' -f2 > borrar.txt
+    cat borrar.txt | while read in; do qm destroy "$in"; done
+    rm borrar.txt
+    echo "Máquinas eliminadas"
+    # Eliminar conjunto
+    echo "Eliminando conjunto del usuario $usuario"
+    pvesh delete /pools/"$usuario"
+    echo "Conjunto eliminado"
+  done
+
+  # Eliminar máquinas de cada usuario
+  IFS=',' read -ra arr_maquinas <<< "$maquinas"
+  for usuario in "${arr_usuarios[@]}"; do
+    for maquina in "${arr_maquinas[@]}"; do
+      maquina_nombre="$usuario-$maquina"
+      echo "Eliminando máquina $maquina_nombre del usuario $usuario"
+      pvesh delete /nodes/"$1"/qemu/"$maquina_nombre"
+    done
+  done
+
+# Eliminar grupo
+  pveum groupdel "$grupo"
+  echo "El grupo $grupo ha sido eliminado SATISFACTORIAMENTE"
+
+  # Eliminar cuentas de usuario
+  for usuario in "${arr_usuarios[@]}"; do
+    pveum userdel "$usuario@pve"
+    echo "El usuario $usuario ha sido eliminado SATISFACTORIAMENTE"
+  done
+
+done < "datos/$2"
