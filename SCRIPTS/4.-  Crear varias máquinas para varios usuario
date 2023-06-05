@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#Sintaxis
+  if [ $# -ne 3 ]; then
+    echo "Sintáxis: $0 nodo listadoDeAlumnos.txt listaDeMáquinas.txt"
+    echo "'listaDeMáquinas.txt' es un archivo de texto"
+    echo "Cada línea tendrá IdPlantilla,NombreMáquina"
+    echo "'listadoDeAlumnos.txt' es un archivo de texto"
+    echo "Cada línea tendrá IdAlumno"
+    exit
+  fi
+
+#Utiliza el script nuevoalumno.sh para crear una nueva cuenta de usuario,
+#un nuevo conjunto con su nombre y un grupo de máquinas virtuales asociadas
+#a dicho conjunto
+   while read -r usuario
+   do
+    echo -ne "Creando cuenta:"
+    sh usuario-maquinas.sh $1 $usuario $3
+  done < "datos/$2"
+
