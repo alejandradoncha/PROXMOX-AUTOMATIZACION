@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#Sinataxis
+  if [ $# -ne 1 ]; then
+    echo "Sintáxis: $0 listadoDeAlumnos.txt"
+    echo "'listadoDeAlumnos.txt' es un archivo de texto"
+    echo "Cada línea tendrá IdAlumno"
+    exit
+  fi
+
+#Utiliza el script eliminar-usuario.sh para eliminar una cuenta de usuario,
+#el conjunto con su nombre y las máquinas virtuales asociadas
+#a dicho conjunto
+  while read -r usuario
+  do
+    echo "Borrando cuenta $usuario"
+    echo "-------------------------------------------------"
+    ./eliminar-usuario.sh $usuario
+  done < "datos/$1"
+
