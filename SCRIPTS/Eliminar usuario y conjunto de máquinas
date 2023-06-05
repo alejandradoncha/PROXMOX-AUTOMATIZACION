@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#Sinataxis
+      if [ $# -ne 1 ]; then
+            echo "Sintáxis: $0 nombreDeAlumno"
+            exit
+      fi
+
+#Eliminar la cuenta de usuario
+      echo "$1@pve:"
+      pveum userdel "$1@pve"
+      echo -e "Usuario eliminado"
+
+#Eliminar máquinas del conjunto
+      pvesh get /pools/"$1" --output-format yaml | grep vmid | cut -d ':' -f2 >borrar.txt
+      echo "Máquinas encontradas:"
+      cat borrar.txt
+
+      cat borrar.txt | while read in; do qm destroy "$in"; done
+      rm borrar.txt
+      echo "Máquinas eliminadas"
+
+#Eliminar conjunto
+      pvesh delete pools -poolid
+      pvesh delete /pools/"$1"
+      echo "Conjunto eliminado"
