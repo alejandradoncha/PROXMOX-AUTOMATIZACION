@@ -1,0 +1,56 @@
+#!/bin/bash
+
+#Sintaxis
+   if [ $# -ne 2 ]; then
+    echo "Sintáxis: $0 nodo archivo.txt"
+    echo "'archivo.txt' es un archivo de texto con el formato 'GRUPO:usuarios:100:nombre_maquina'"
+    echo "Donde 'GRUPO' es el nombre del grupo a crear, 'usuarios' son los nombres de usuario a crear, '100' es el número de máquinas virtuales asociadas a cada usuario seguid>exit
+  fi
+
+#Leer el archivo línea por línea
+  while IFS=: read -r grupo usuarios maquinas nombres_maquinas; do
+
+#Crear grupo
+    pveum groupadd $grupo
+    echo "EL GRUPO $grupo ha sido creado SATISFACTORIAMENTE"
+
+#Crear cuenta de usuario
+  IFS=',' read -ra arr_usuarios <<< "$usuarios"
+    for usuario in "${arr_usuarios[@]}"; do
+      echo "Creando al usuario $usuario@pve"
+      pveum useradd "$usuario@pve"
+      pvesh set /access/password \
+        --userid "$usuario@pve" \
+        --password "contraseña.secreta"
+
+
+
+#Creación de conjunto por usuario
+  echo "Creando grupo: $grupo"
+      pvesh create pools -poolid "$usuario"
+
+#Dar permiso al usuario sobre el conjunto
+  pvesh set /access/acl \
+      -path /pool/"$usuario" \
+      -roles PVEVMAdmin \
+      -users "$usuario@pve" #Añadir usuario al grupo
+    echo "Añadiendo usuario $usuario al grupo $grupo"
+        pveum usermod "$usuario@pve" --groups "$grupo"
+
+ # Iterar sobre cada máquina del usuario
+    IFS=',' read -ra arr_maquinas <<< "$maquinas"
+    IFS=',' read -ra arr_nombres_maquinas <<< "$nombres_maquinas"
+    for index in "${!arr_maquinas[@]}"; do
+      maquina="${arr_maquinas[index]}"
+      nombre_maquina="${arr_nombres_maquinas[index]}"
+    echo "Clonando máquina $maquina"
+      new_id=$(pvesh get /cluster/nextid)
+      pvesh create /nodes/"$1"/qemu/"$maquina"/clone \
+        --pool="$usuario" \
+        --newid "$new_id" \
+        --name "$usuario-$nombre_maquina" \
+        --full
+
+done
+done
+done < "datos/$2"
